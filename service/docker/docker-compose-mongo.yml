@@ -1,0 +1,89 @@
+version: '3.8'
+services:
+  api:
+    env_file:
+      - ../../.env
+      - ../../.env.local
+    networks:
+      - services-api-network
+    build:
+      context: ../..
+      dockerfile: ../docker/Dockerfile
+    restart: always
+    environment:
+      TZ: "Europe/London"
+    ports:
+      - "${PROJECT_PORT_EXTERNAL}:${PROJECT_PORT_INTERNAL}"
+      - "443:443"
+      - "40000:40000"
+    volumes:
+      - ~/go/:/root/.cache/go-build/:cached
+      - ../../app:/go/src/app/:cached
+    command: sh /run/run-dev.sh
+    tty: true
+    security_opt:
+      - "apparmor=unconfined"
+    cap_add:
+      - SYS_PTRACE
+  mongo:
+    env_file:
+      - ../../.env
+      - ../../.env.local
+    networks:
+      services-api-network:
+        aliases:
+          - database.local
+      services-mongo-network:
+        aliases:
+          - database.local
+    image: mongo:latest
+    restart: always
+    environment:
+      TZ: "Europe/London"
+    volumes:
+      - ../mongodb/data/:/data/db/:delegated
+    tty: true
+  mongo-admin:
+    env_file:
+      - ../../.env
+      - ../../.env.local
+    networks:
+      services-mongo-network:
+        aliases:
+          - mongo-admin.local
+    restart: always
+    image: mongo-express:latest
+    ports:
+      - "8091:8081"
+    depends_on:
+      - mongo
+  swagger-ui:
+    environment:
+      BASE_URL: "/docs"
+      SWAGGER_JSON: "/var/api.json"
+      SWAGGER_JSON_URL: "http://localhost:8092/docs/api.json"
+      SWAGGER_ROOT:
+      PORT: "80"
+    image: swaggerapi/swagger-ui:latest
+    ports:
+      - "8092:80"
+    restart: always
+    volumes:
+      - ../../app/ui/rest/api.json:/var/api.json:delegated
+  redis-server:
+    image: redis:alpine
+    networks:
+      services-api-network:
+        aliases:
+          - cache.local
+    restart: always
+    environment:
+      TZ: "Europe/London"
+    expose:
+      - ${REDIS_EXTERNAL_PORT}
+
+networks:
+  services-mongo-network:
+    name: services-mongo-network
+  services-api-network:
+    name: services-api-network

@@ -1,0 +1,57 @@
+# graphql schema example
+#
+# https://gqlgen.com/getting-started/
+
+directive @auth on FIELD_DEFINITION
+directive @goModel(model: String, models: [String!]) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+scalar Void
+
+type Query {
+    AuthCheck: Void @auth
+    AuthCredentials(input: AuthCredentialsDTO!): AuthConfirmation
+    AuthConfirmation(input: AuthConfirmationDTO!): AuthToken
+    AuthRegister(input: UserRegisterDTO!): User
+    AuthRefresh: AuthToken @auth
+}
+
+type AuthOps {
+    AuthCredentials(input: AuthCredentialsDTO!): AuthConfirmation
+    AuthConfirmation(input: AuthConfirmationDTO!): AuthToken
+    AuthRegister(input: UserRegisterDTO!): User
+}
+
+input AuthCredentialsDTO @goModel(model: "github.com/sergeygardner/meal-planner-api/domain/dto.AuthCredentialsDTO") {
+    username: String!
+    password: String!
+}
+
+input AuthConfirmationDTO @goModel(model: "github.com/sergeygardner/meal-planner-api/domain/dto.AuthConfirmationDTO") {
+    username: String!
+    password: String!
+    code: String!
+}
+
+input UserRegisterDTO @goModel(model: "github.com/sergeygardner/meal-planner-api/domain/dto.UserRegisterDTO") {
+    username: String!
+    password: String!
+}
+
+type AuthConfirmation @goModel(model: "github.com/sergeygardner/meal-planner-api/domain/response.AuthConfirmation") {
+    message: String!
+    status: Int!
+}
+
+type User @goModel(model: "github.com/sergeygardner/meal-planner-api/domain/entity.User") {
+    id: ID!
+}
+
+type AuthToken @goModel(model: "github.com/sergeygardner/meal-planner-api/domain/response.AuthToken") {
+    access_token: String!
+    refresh_token: String!
+}
+
+type Mutation {
+    auth: AuthOps! @goField(forceResolver: true)
+}
